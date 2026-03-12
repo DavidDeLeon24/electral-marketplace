@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electral - Electronic Parts Marketplace</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>⚡ Electral</h1>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="/" class="active">Home</a></li>
+                <li><a href="/sell.html">Sell Part</a></li>
+                <li><a href="/login.html" id="loginLink">Login</a></li>
+                <li><a href="/profile.html" id="profileLink" style="display: none;">Profile</a></li>
+                <li><a href="#" id="logoutLink" style="display: none;">Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="search-section">
+            <h2>Find Electronic Parts</h2>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search for parts...">
+                <button id="searchBtn"><i class="fas fa-search"></i> Search</button>
+            </div>
+        </section>
+
+        <section class="categories">
+            <h3>Categories</h3>
+            <div class="category-icons">
+                <div class="category" data-cat="CPU">
+                    <i class="fas fa-microchip"></i>
+                    <span>CPU</span>
+                </div>
+                <div class="category" data-cat="GPU">
+                    <i class="fas fa-tv"></i>
+                    <span>GPU</span>
+                </div>
+                <div class="category" data-cat="Memory">
+                    <i class="fas fa-memory"></i>
+                    <span>RAM</span>
+                </div>
+                <div class="category" data-cat="Storage">
+                    <i class="fas fa-hdd"></i>
+                    <span>Storage</span>
+                </div>
+                <div class="category" data-cat="Phone Parts">
+                    <i class="fas fa-mobile-alt"></i>
+                    <span>Phone Parts</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="featured-parts">
+            <h3>Featured Parts</h3>
+            <div class="parts-grid" id="partsGrid">
+                <div class="loading">Loading parts...</div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Electral - Electronic Parts Marketplace</p>
+        <p>By Angela Monares and David De Leon</p>
+    </footer>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Electral</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>⚡ Electral</h1>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/sell.html">Sell Part</a></li>
+                <li><a href="/profile.html" class="active">Profile</a></li>
+                <li><a href="#" id="logoutLink">Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="profile-container">
+        <h2>My Profile</h2>
+        
+        <div class="profile-info" id="profileInfo">
+            <div class="loading">Loading profile...</div>
+        </div>
+
+        <h3>My Listings</h3>
+        <div class="parts-grid" id="myListings">
+            <!-- Listings will be loaded here -->
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Electral - Electronic Parts Marketplace</p>
+        <p>By Angela Monares and David De Leon</p>
+    </footer>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
