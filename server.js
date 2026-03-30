@@ -153,7 +153,7 @@ async function seedDatabase() {
 
         console.log(`✅ Created ${parts.length} parts`);
 
-        // Sample messages
+        // Sample message
         await Message.create([
             {
                 sender: users[1]._id,
