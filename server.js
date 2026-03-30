@@ -235,7 +235,7 @@ app.use((err, req, res, next) => {
     });
 });
 
-// ============= SEED DATABASE ON STARTUP =============
+// SEED DATABASE ON STARTUP
 seedDatabase();
 
 // ============= START SERVER =============
