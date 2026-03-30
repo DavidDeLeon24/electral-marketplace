@@ -1,5 +1,5 @@
 // ============= GLOBAL VARIABLES =============
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'http://localhost:3000/api';
 
 // ============= AUTHENTICATION FUNCTIONS =============
 
@@ -57,7 +57,8 @@ async function authFetch(url, options = {}) {
         if (response.status === 401) {
             removeToken();
             updateAuthUI();
-            if (!window.location.pathname.includes('login.html')) {
+            if (!window.location.pathname.includes('login.html') && 
+                !window.location.pathname.includes('register.html')) {
                 window.location.href = '/login.html?session=expired';
             }
             return null;
@@ -71,13 +72,14 @@ async function authFetch(url, options = {}) {
 }
 
 // Update UI based on login status
-function updateAuthUI() {
+async function updateAuthUI() {
     const loggedIn = isLoggedIn();
     const user = getUser();
     
     const loginLinks = document.querySelectorAll('#loginLink');
     const profileLinks = document.querySelectorAll('#profileLink');
     const logoutLinks = document.querySelectorAll('#logoutLink');
+    const messagesLink = document.querySelector('a[href="/messages.html"]');
     
     loginLinks.forEach(link => {
         if (link) link.style.display = loggedIn ? 'none' : 'inline-block';
@@ -98,6 +100,22 @@ function updateAuthUI() {
             }
         }
     });
+    
+    // Update unread badge
+    if (loggedIn && messagesLink) {
+        const unreadCount = await getUnreadCount();
+        const existingBadge = messagesLink.querySelector('.unread-badge');
+        
+        if (unreadCount > 0) {
+            if (existingBadge) {
+                existingBadge.textContent = unreadCount;
+            } else {
+                messagesLink.innerHTML += `<span class="unread-badge" style="background: #f56565; color: white; border-radius: 10px; padding: 0.1rem 0.5rem; font-size: 0.7rem; margin-left: 0.5rem;">${unreadCount}</span>`;
+            }
+        } else if (existingBadge) {
+            existingBadge.remove();
+        }
+    }
     
     if (window.location.pathname.includes('sell.html') && !loggedIn) {
         window.location.href = '/login.html?redirect=sell.html';
@@ -172,6 +190,100 @@ function logout() {
     window.location.href = '/';
 }
 
+// ============= MESSAGES FUNCTIONS =============
+
+// Get unread message count
+async function getUnreadCount() {
+    if (!isLoggedIn()) return 0;
+    
+    try {
+        const response = await authFetch(`${API_BASE}/messages/unread/count`);
+        if (!response) return 0;
+        
+        const data = await response.json();
+        return data.unreadCount;
+    } catch (error) {
+        return 0;
+    }
+}
+
+// Send message to seller
+async function sendMessageToSeller(receiverId, partId, content) {
+    if (!isLoggedIn()) {
+        showAlert('Please login to send messages', 'error');
+        setTimeout(() => {
+            window.location.href = `/login.html?redirect=${window.location.pathname}`;
+        }, 2000);
+        return false;
+    }
+    
+    try {
+        const response = await authFetch(`${API_BASE}/messages`, {
+            method: 'POST',
+            body: JSON.stringify({
+                receiverId,
+                partId,
+                content
+            })
+        });
+        
+        if (!response) return false;
+        
+        if (response.ok) {
+            showAlert('Message sent successfully!', 'success');
+            return true;
+        } else {
+            const data = await response.json();
+            showAlert(data.message || 'Failed to send message', 'error');
+            return false;
+        }
+    } catch (error) {
+        console.error('Error sending message:', error);
+        showAlert('Error sending message', 'error');
+        return false;
+    }
+}
+
+// ============= REVIEW FUNCTIONS =============
+
+// Submit a review
+async function submitReview(revieweeId, partId, rating, comment) {
+    if (!isLoggedIn()) {
+        showAlert('Please login to leave a review', 'error');
+        setTimeout(() => {
+            window.location.href = `/login.html?redirect=${window.location.pathname}`;
+        }, 2000);
+        return false;
+    }
+    
+    try {
+        const response = await authFetch(`${API_BASE}/reviews`, {
+            method: 'POST',
+            body: JSON.stringify({
+                revieweeId,
+                partId,
+                rating,
+                comment
+            })
+        });
+        
+        if (!response) return false;
+        
+        if (response.ok) {
+            showAlert('Review submitted successfully!', 'success');
+            return true;
+        } else {
+            const data = await response.json();
+            showAlert(data.message || 'Failed to submit review', 'error');
+            return false;
+        }
+    } catch (error) {
+        console.error('Error submitting review:', error);
+        showAlert('Error submitting review', 'error');
+        return false;
+    }
+}
+
 // ============= PARTS FUNCTIONS =============
 
 // Load parts on home page
@@ -196,10 +308,12 @@ async function loadParts() {
     }
 }
 
-// Display parts in grid
+// Display parts in grid with message button
 function displayParts(parts) {
     const partsGrid = document.getElementById('partsGrid');
     if (!partsGrid) return;
+    
+    const currentUser = getUser();
 
     partsGrid.innerHTML = parts.map(part => `
         <div class="part-card" data-part-id="${part._id}">
@@ -211,12 +325,27 @@ function displayParts(parts) {
                 <p class="part-category">${part.category}</p>
                 <p class="part-condition condition-${part.condition}">${part.condition}</p>
                 <p class="part-price">$${Number(part.price).toFixed(2)}</p>
-                <p class="part-seller">Sold by: ${part.seller ? part.seller.username : 'Unknown'}</p>
+                <p class="part-seller">Sold by: ${part.seller?.username || 'Unknown'}</p>
                 <p class="part-description">${part.description ? part.description.substring(0, 100) + '...' : 'No description'}</p>
-                <button class="view-details-btn" onclick="viewPartDetails('${part._id}')">View Details</button>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button class="view-details-btn" onclick="viewPartDetails('${part._id}')">View Details</button>
+                    ${currentUser && part.seller?._id !== currentUser.id ? 
+                        `<button class="message-seller-btn" onclick="openMessageModal('${part.seller?._id}', '${part._id}', '${part.partName}')">
+                            <i class="fas fa-envelope"></i> Message
+                        </button>` : ''
+                    }
+                </div>
             </div>
         </div>
     `).join('');
+}
+
+// Open message modal
+function openMessageModal(sellerId, partId, partName) {
+    const message = prompt(`Send a message to the seller about "${partName}":`);
+    if (message && message.trim()) {
+        sendMessageToSeller(sellerId, partId, message);
+    }
 }
 
 // View part details
@@ -269,93 +398,6 @@ async function handleSellFormSubmit(event) {
     } catch (error) {
         console.error('Error listing part:', error);
         showAlert('Error listing part. Please try again.', 'error');
-    }
-}
-
-// ============= PROFILE FUNCTIONS =============
-
-// Load user profile
-async function loadUserProfile() {
-    if (!isLoggedIn()) {
-        window.location.href = '/login.html';
-        return;
-    }
-
-    const profileInfo = document.getElementById('profileInfo');
-    const myListings = document.getElementById('myListings');
-
-    try {
-        const response = await authFetch(`${API_BASE}/users/profile`);
-        if (!response) return;
-
-        const user = await response.json();
-        
-        if (profileInfo) {
-            profileInfo.innerHTML = `
-                <p><strong>Username:</strong> ${user.username}</p>
-                <p><strong>Email:</strong> ${user.email}</p>
-                <p><strong>Name:</strong> ${user.firstName || ''} ${user.lastName || ''}</p>
-                <p><strong>Member since:</strong> ${new Date(user.createdAt).toLocaleDateString()}</p>
-                <p><strong>Account type:</strong> ${user.isSeller ? 'Seller' : 'Buyer'}</p>
-            `;
-        }
-
-        if (myListings && user.listings) {
-            if (user.listings.length > 0) {
-                myListings.innerHTML = user.listings.map(part => `
-                    <div class="part-card">
-                        <div class="part-info">
-                            <h4>${part.partName}</h4>
-                            <p>${part.category} - ${part.condition}</p>
-                            <p class="part-price">$${Number(part.price).toFixed(2)}</p>
-                            <p>Listed: ${new Date(part.createdAt).toLocaleDateString()}</p>
-                            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                                <button class="edit-btn" onclick="editPart('${part._id}')">Edit</button>
-                                <button class="delete-btn" onclick="deletePart('${part._id}')">Delete</button>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                myListings.innerHTML = '<div class="no-parts">You haven\'t listed any parts yet. <a href="/sell.html">Sell a part</a></div>';
-            }
-        }
-    } catch (error) {
-        console.error('Error loading profile:', error);
-        if (profileInfo) {
-            profileInfo.innerHTML = '<div class="error">Error loading profile</div>';
-        }
-    }
-}
-
-// Edit part function
-function editPart(partId) {
-    window.location.href = `/edit-part.html?id=${partId}`;
-}
-
-// Delete part function
-async function deletePart(partId) {
-    if (!confirm('Are you sure you want to delete this part?')) {
-        return;
-    }
-
-    try {
-        const response = await authFetch(`${API_BASE}/parts/${partId}`, {
-            method: 'DELETE'
-        });
-
-        if (!response) return;
-
-        if (response.ok) {
-            showAlert('Part deleted successfully', 'success');
-            loadUserProfile();
-        } else {
-            const data = await response.json();
-            showAlert(data.message || 'Failed to delete part', 'error');
-        }
-    } catch (error) {
-        console.error('Error deleting part:', error);
-        showAlert('Error deleting part', 'error');
     }
 }
 
@@ -497,10 +539,6 @@ document.addEventListener('DOMContentLoaded', () => {
             sellForm.addEventListener('submit', handleSellFormSubmit);
         }
     }
-    
-    if (path === '/profile.html') {
-        loadUserProfile();
-    }
 });
 
 // Make functions globally available
@@ -508,3 +546,6 @@ window.viewPartDetails = viewPartDetails;
 window.editPart = editPart;
 window.deletePart = deletePart;
 window.logout = logout;
+window.sendMessageToSeller = sendMessageToSeller;
+window.openMessageModal = openMessageModal;
+window.submitReview = submitReview;

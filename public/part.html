@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part Details - Electral</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .part-details-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .part-details {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .part-details-header {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .part-details-image {
+            flex: 1;
+            min-width: 200px;
+            height: 200px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .part-details-image i {
+            font-size: 5rem;
+            color: #999;
+        }
+        
+        .part-details-info {
+            flex: 2;
+            min-width: 250px;
+        }
+        
+        .part-details-info h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .part-details-price {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #667eea;
+            margin: 1rem 0;
+        }
+        
+        .part-details-condition {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .condition-New {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .condition-Used {
+            background: #feebc8;
+            color: #744210;
+        }
+        
+        .condition-Refurbished {
+            background: #e9d8fd;
+            color: #44337a;
+        }
+        
+        .part-details-seller {
+            background: #f7fafc;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+        }
+        
+        .part-details-seller h3 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .seller-rating {
+            color: #fbbf24;
+            margin: 0.5rem 0;
+        }
+        
+        .message-btn, .review-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 1rem;
+        }
+        
+        .message-btn {
+            background: #667eea;
+            color: white;
+        }
+        
+        .message-btn:hover {
+            background: #5a67d8;
+        }
+        
+        .review-btn {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .review-btn:hover {
+            background: #38a169;
+        }
+        
+        .part-details-description {
+            margin: 2rem 0;
+        }
+        
+        .part-details-description h3 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .part-details-description p {
+            line-height: 1.8;
+            color: #555;
+        }
+        
+        .back-button {
+            display: inline-block;
+            margin-top: 1rem;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .back-button:hover {
+            text-decoration: underline;
+        }
+        
+        .reviews-section {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .reviews-section h3 {
+            margin-bottom: 1.5rem;
+        }
+        
+        .review-card {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 1rem 0;
+        }
+        
+        .review-card:last-child {
+            border-bottom: none;
+        }
+        
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .reviewer-name {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .review-rating {
+            color: #fbbf24;
+        }
+        
+        .review-comment {
+            color: #555;
+            margin: 0.5rem 0;
+        }
+        
+        .review-date {
+            font-size: 0.8rem;
+            color: #999;
+        }
+        
+        .no-reviews {
+            text-align: center;
+            color: #999;
+            padding: 2rem;
+        }
+        
+        .review-form {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .star-rating {
+            display: flex;
+            gap: 0.5rem;
+            margin: 0.5rem 0;
+        }
+        
+        .star {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #e2e8f0;
+        }
+        
+        .star.active {
+            color: #fbbf24;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .part-details-header {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>⚡ Electral</h1>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/sell.html">Sell Part</a></li>
+                <li><a href="/messages.html">Messages</a></li>
+                <li><a href="/login.html" id="loginLink">Login</a></li>
+                <li><a href="/profile.html" id="profileLink" style="display: none;">Profile</a></li>
+                <li><a href="#" id="logoutLink" style="display: none;">Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="part-details-container">
+        <div id="partDetails" class="part-details">
+            <div class="loading">Loading part details...</div>
+        </div>
+        
+        <div id="reviewsSection" class="reviews-section">
+            <div class="loading">Loading reviews...</div>
+        </div>
+        
+        <a href="/" class="back-button"><i class="fas fa-arrow-left"></i> Back to Home</a>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Electral - Electronic Parts Marketplace</p>
+        <p>By Angela Monares and David De Leon</p>
+    </footer>
+
+    <script src="/js/app.js"></script>
+    <script>
+        let currentPart = null;
+        let currentUser = null;
+        
+        // Get part ID from URL
+        function getPartId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('id');
+        }
+        
+        // Load part details
+        async function loadPartDetails() {
+            const partId = getPartId();
+            if (!partId) {
+                document.getElementById('partDetails').innerHTML = '<div class="error">No part ID specified</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/parts/${partId}`);
+                if (!response.ok) {
+                    throw new Error('Part not found');
+                }
+                
+                currentPart = await response.json();
+                displayPartDetails(currentPart);
+                loadReviews(partId);
+                
+            } catch (error) {
+                console.error('Error loading part:', error);
+                document.getElementById('partDetails').innerHTML = '<div class="error">Part not found</div>';
+            }
+        }
+        
+        // Display part details
+        function displayPartDetails(part) {
+            const container = document.getElementById('partDetails');
+            currentUser = getUser();
+            const isOwner = currentUser && part.seller && part.seller._id === currentUser.id;
+            
+            container.innerHTML = `
+                <div class="part-details-header">
+                    <div class="part-details-image">
+                        <i class="fas fa-microchip"></i>
+                    </div>
+                    <div class="part-details-info">
+                        <h2>${part.partName}</h2>
+                        <div class="part-details-condition condition-${part.condition}">${part.condition}</div>
+                        <div class="part-details-price">$${Number(part.price).toFixed(2)}</div>
+                        <p><strong>Category:</strong> ${part.category}</p>
+                        <div class="part-details-seller">
+                            <h3>Seller Information</h3>
+                            <p><strong>Username:</strong> ${part.seller?.username || 'Unknown'}</p>
+                            <p><strong>Email:</strong> ${part.seller?.email || 'Unknown'}</p>
+                            <div class="seller-rating" id="sellerRating"></div>
+                            ${!isOwner && currentUser ? `
+                                <button class="message-btn" onclick="messageSeller()">
+                                    <i class="fas fa-envelope"></i> Message Seller
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="part-details-description">
+                    <h3>Description</h3>
+                    <p>${part.description || 'No description provided'}</p>
+                </div>
+            `;
+            
+            // Load seller rating
+            if (part.seller && part.seller._id) {
+                loadSellerRating(part.seller._id);
+            }
+        }
+        
+        // Load seller rating
+        async function loadSellerRating(sellerId) {
+            try {
+                const response = await fetch(`${API_BASE}/reviews/user/${sellerId}`);
+                const data = await response.json();
+                const ratingContainer = document.getElementById('sellerRating');
+                
+                if (ratingContainer) {
+                    if (data.averageRating > 0) {
+                        ratingContainer.innerHTML = `
+                            <strong>Seller Rating:</strong> 
+                            ${'★'.repeat(Math.floor(data.averageRating))}${'☆'.repeat(5 - Math.floor(data.averageRating))}
+                            (${data.averageRating.toFixed(1)} / 5 from ${data.totalReviews} reviews)
+                        `;
+                    } else {
+                        ratingContainer.innerHTML = `<strong>Seller Rating:</strong> No reviews yet`;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading rating:', error);
+            }
+        }
+        
+        // Load reviews for this part
+        async function loadReviews(partId) {
+            const container = document.getElementById('reviewsSection');
+            
+            try {
+                const response = await fetch(`${API_BASE}/reviews?partId=${partId}`);
+                const data = await response.json();
+                
+                currentUser = getUser();
+                const canReview = currentUser && currentPart && currentPart.seller && 
+                                  currentUser.id !== currentPart.seller._id;
+                
+                let reviewsHtml = `<h3>Reviews</h3>`;
+                
+                if (data.reviews && data.reviews.length > 0) {
+                    reviewsHtml += data.reviews.map(review => `
+                        <div class="review-card">
+                            <div class="review-header">
+                                <span class="reviewer-name">${review.reviewer?.username || 'Anonymous'}</span>
+                                <span class="review-rating">${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}</span>
+                            </div>
+                            <div class="review-comment">${review.comment || 'No comment provided'}</div>
+                            <div class="review-date">${new Date(review.createdAt).toLocaleDateString()}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    reviewsHtml += `<div class="no-reviews">No reviews yet for this part</div>`;
+                }
+                
+                // Add review form if user can review
+                if (canReview) {
+                    reviewsHtml += `
+                        <div class="review-form">
+                            <h4>Write a Review</h4>
+                            <div class="star-rating" id="starRating">
+                                ${[1,2,3,4,5].map(star => `
+                                    <span class="star" data-rating="${star}" onclick="setRating(${star})">★</span>
+                                `).join('')}
+                            </div>
+                            <textarea id="reviewComment" placeholder="Write your review..." rows="3" style="width: 100%; margin: 0.5rem 0; padding: 0.5rem; border: 1px solid #e0e0e0; border-radius: 5px;"></textarea>
+                            <button class="review-btn" onclick="submitReviewForPart()">Submit Review</button>
+                        </div>
+                    `;
+                }
+                
+                container.innerHTML = reviewsHtml;
+                
+            } catch (error) {
+                console.error('Error loading reviews:', error);
+                container.innerHTML = '<div class="error">Error loading reviews</div>';
+            }
+        }
+        
+        let selectedRating = 0;
+        
+        function setRating(rating) {
+            selectedRating = rating;
+            document.querySelectorAll('.star').forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+        
+        // Submit review for part
+        async function submitReviewForPart() {
+            if (!isLoggedIn()) {
+                showAlert('Please login to submit a review', 'error');
+                setTimeout(() => {
+                    window.location.href = `/login.html?redirect=/part.html?id=${getPartId()}`;
+                }, 2000);
+                return;
+            }
+            
+            if (selectedRating === 0) {
+                showAlert('Please select a rating', 'error');
+                return;
+            }
+            
+            const comment = document.getElementById('reviewComment').value;
+            
+            try {
+                const response = await authFetch(`${API_BASE}/reviews`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        revieweeId: currentPart.seller._id,
+                        partId: currentPart._id,
+                        rating: selectedRating,
+                        comment: comment
+                    })
+                });
+                
+                if (response && response.ok) {
+                    showAlert('Review submitted successfully!', 'success');
+                    selectedRating = 0;
+                    document.getElementById('reviewComment').value = '';
+                    document.querySelectorAll('.star').forEach(star => star.classList.remove('active'));
+                    loadReviews(getPartId()); // Reload reviews
+                } else if (response) {
+                    const data = await response.json();
+                    showAlert(data.message || 'Failed to submit review', 'error');
+                }
+            } catch (error) {
+                console.error('Error submitting review:', error);
+                showAlert('Error submitting review', 'error');
+            }
+        }
+        
+        // Message seller
+        function messageSeller() {
+            if (!isLoggedIn()) {
+                showAlert('Please login to message the seller', 'error');
+                setTimeout(() => {
+                    window.location.href = `/login.html?redirect=/part.html?id=${getPartId()}`;
+                }, 2000);
+                return;
+            }
+            
+            const message = prompt(`Send a message to ${currentPart.seller?.username} about "${currentPart.partName}":`);
+            if (message && message.trim()) {
+                sendMessageToSeller(currentPart.seller._id, currentPart._id, message);
+            }
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAuthUI();
+            loadPartDetails();
+        });
+    </script>
+</body>
+</html>

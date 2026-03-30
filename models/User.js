@@ -39,7 +39,7 @@ const userSchema = new mongoose.Schema({
         default: true
     }
 }, {
-    timestamps: true // Creates createdAt and updatedAt automatically
+    timestamps: true
 });
 
 // Method to compare password
@@ -60,8 +60,27 @@ userSchema.pre('save', async function(next) {
     }
 });
 
+// Virtual for average rating
+userSchema.virtual('averageRating', {
+    ref: 'Review',
+    localField: '_id',
+    foreignField: 'reviewee',
+    justOne: false,
+    options: { match: { isActive: true } }
+});
+
+// Virtual for review count
+userSchema.virtual('reviewCount', {
+    ref: 'Review',
+    localField: '_id',
+    foreignField: 'reviewee',
+    count: true,
+    options: { match: { isActive: true } }
+});
+
 // Remove password hash when converting to JSON
 userSchema.set('toJSON', {
+    virtuals: true,
     transform: (doc, ret) => {
         delete ret.passwordHash;
         delete ret.__v;

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - Electral</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .messages-container {
+            display: flex;
+            height: calc(100vh - 200px);
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .conversations-list {
+            width: 300px;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+        
+        .conversation-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .conversation-item:hover {
+            background: #e9ecef;
+        }
+        
+        .conversation-item.active {
+            background: #e3f2fd;
+            border-left: 3px solid #667eea;
+        }
+        
+        .conversation-item.unread {
+            background: #fff3e0;
+        }
+        
+        .conversation-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .conversation-last-message {
+            font-size: 0.85rem;
+            color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .conversation-time {
+            font-size: 0.7rem;
+            color: #999;
+            float: right;
+        }
+        
+        .unread-badge {
+            background: #f56565;
+            color: white;
+            border-radius: 10px;
+            padding: 0.1rem 0.5rem;
+            font-size: 0.7rem;
+            margin-left: 0.5rem;
+        }
+        
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            background: white;
+        }
+        
+        .chat-header h3 {
+            margin: 0;
+        }
+        
+        .chat-header p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .messages-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: #f8f9fa;
+        }
+        
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .message.sent {
+            align-items: flex-end;
+        }
+        
+        .message.received {
+            align-items: flex-start;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            padding: 0.75rem;
+            border-radius: 10px;
+            background: white;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .message.sent .message-bubble {
+            background: #667eea;
+            color: white;
+        }
+        
+        .message-time {
+            font-size: 0.7rem;
+            color: #999;
+            margin-top: 0.25rem;
+        }
+        
+        .message-input-area {
+            padding: 1rem;
+            border-top: 1px solid #e0e0e0;
+            background: white;
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .message-input-area input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            outline: none;
+        }
+        
+        .message-input-area input:focus {
+            border-color: #667eea;
+        }
+        
+        .message-input-area button {
+            padding: 0.75rem 1.5rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        
+        .no-conversation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+        }
+        
+        @media (max-width: 768px) {
+            .messages-container {
+                flex-direction: column;
+            }
+            
+            .conversations-list {
+                width: 100%;
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>⚡ Electral</h1>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/sell.html">Sell Part</a></li>
+                <li><a href="/messages.html" class="active">Messages</a></li>
+                <li><a href="/profile.html">Profile</a></li>
+                <li><a href="#" id="logoutLink">Logout</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <h2>Messages</h2>
+        
+        <div class="messages-container" id="messagesContainer">
+            <div class="conversations-list" id="conversationsList">
+                <div class="empty-state">Loading conversations...</div>
+            </div>
+            
+            <div class="chat-area" id="chatArea">
+                <div class="no-conversation">
+                    <p>Select a conversation to start messaging</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Electral - Electronic Parts Marketplace</p>
+        <p>By Angela Monares and David De Leon</p>
+    </footer>
+
+    <script src="/js/app.js"></script>
+    <script>
+        let currentConversationId = null;
+        let currentUser = null;
+        
+        // Load messages on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!isLoggedIn()) {
+                window.location.href = '/login.html?redirect=messages.html';
+                return;
+            }
+            
+            currentUser = getUser();
+            await loadConversations();
+            
+            // Poll for new messages every 5 seconds
+            setInterval(loadConversations, 5000);
+        });
+        
+        // Load all conversations
+        async function loadConversations() {
+            try {
+                const response = await authFetch(`${API_BASE}/messages`);
+                if (!response) return;
+                
+                const data = await response.json();
+                displayConversations(data.conversations);
+                
+                // Update unread count in navigation
+                if (data.totalUnread > 0) {
+                    document.title = `(${data.totalUnread}) Messages - Electral`;
+                } else {
+                    document.title = 'Messages - Electral';
+                }
+                
+            } catch (error) {
+                console.error('Error loading conversations:', error);
+            }
+        }
+        
+        // Display conversations list
+        function displayConversations(conversations) {
+            const container = document.getElementById('conversationsList');
+            
+            if (!conversations || conversations.length === 0) {
+                container.innerHTML = '<div class="empty-state">No conversations yet. Start messaging sellers about parts!</div>';
+                return;
+            }
+            
+            container.innerHTML = conversations.map(conv => `
+                <div class="conversation-item ${conv.unreadCount > 0 ? 'unread' : ''} ${currentConversationId === conv.user._id ? 'active' : ''}" 
+                     onclick="loadConversation('${conv.user._id}')">
+                    <div class="conversation-name">
+                        ${conv.user.username}
+                        ${conv.unreadCount > 0 ? `<span class="unread-badge">${conv.unreadCount}</span>` : ''}
+                    </div>
+                    <div class="conversation-last-message">${conv.lastMessage.content.substring(0, 50)}</div>
+                    <div class="conversation-time">${new Date(conv.lastMessage.createdAt).toLocaleDateString()}</div>
+                </div>
+            `).join('');
+        }
+        
+        // Load conversation with specific user
+        async function loadConversation(userId) {
+            currentConversationId = userId;
+            
+            try {
+                const response = await authFetch(`${API_BASE}/messages/conversation/${userId}`);
+                if (!response) return;
+                
+                const data = await response.json();
+                displayChat(data);
+                
+                // Highlight active conversation
+                document.querySelectorAll('.conversation-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                document.querySelector(`.conversation-item[onclick="loadConversation('${userId}')"]`).classList.add('active');
+                
+            } catch (error) {
+                console.error('Error loading conversation:', error);
+            }
+        }
+        
+        // Display chat messages
+        function displayChat(data) {
+            const chatArea = document.getElementById('chatArea');
+            
+            chatArea.innerHTML = `
+                <div class="chat-header">
+                    <h3>${data.user.username}</h3>
+                    <p>${data.user.email}</p>
+                </div>
+                <div class="messages-list" id="messagesList">
+                    ${data.messages.map(msg => `
+                        <div class="message ${msg.sender._id === currentUser.id ? 'sent' : 'received'}">
+                            <div class="message-bubble">
+                                ${msg.content}
+                                ${msg.part ? `<small style="display:block; margin-top:5px;">📦 Regarding: ${msg.part.partName}</small>` : ''}
+                            </div>
+                            <div class="message-time">${new Date(msg.createdAt).toLocaleString()}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="message-input-area">
+                    <input type="text" id="messageInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+                    <button onclick="sendMessage()">Send</button>
+                </div>
+            `;
+            
+            // Scroll to bottom
+            const messagesList = document.getElementById('messagesList');
+            if (messagesList) {
+                messagesList.scrollTop = messagesList.scrollHeight;
+            }
+        }
+        
+        // Send message
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            
+            if (!content) return;
+            
+            try {
+                const response = await authFetch(`${API_BASE}/messages`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        receiverId: currentConversationId,
+                        content: content
+                    })
+                });
+                
+                if (response && response.ok) {
+                    input.value = '';
+                    await loadConversation(currentConversationId);
+                    await loadConversations();
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Failed to send message');
+            }
+        }
+        
+        // Handle enter key
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -18,7 +18,8 @@ const messageSchema = new mongoose.Schema({
     content: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        maxlength: 2000
     },
     isRead: {
         type: Boolean,
@@ -27,6 +28,9 @@ const messageSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+messageSchema.index({ sender: 1, receiver: 1, createdAt: -1 });
+messageSchema.index({ receiver: 1, isRead: 1 });
 
 messageSchema.set('toJSON', {
     transform: (doc, ret) => {

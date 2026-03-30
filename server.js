@@ -10,6 +10,17 @@ const cors = require('cors');
 const User = require('./models/User');
 const Part = require('./models/Part');
 const Message = require('./models/Message');
+const Review = require('./models/Review');
+
+// Import routes
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const partRoutes = require('./routes/parts');
+const messageRoutes = require('./routes/messages');
+const reviewRoutes = require('./routes/reviews');
+
+// Import middleware
+const { generalLimiter, authLimiter } = require('./middleware/rateLimiter');
 
 dotenv.config();
 
@@ -60,7 +71,6 @@ const authenticateToken = async (req, res, next) => {
 // ============= SEED DATA FUNCTION =============
 async function seedDatabase() {
     try {
-        // Check if we already have data
         const userCount = await User.countDocuments();
         if (userCount > 0) {
             console.log('📦 Database already has data, skipping seed');
@@ -69,7 +79,6 @@ async function seedDatabase() {
 
         console.log('🌱 Seeding database with sample data...');
 
-        // Create users
         const users = await User.create([
             {
                 email: 'john@example.com',
@@ -99,7 +108,6 @@ async function seedDatabase() {
 
         console.log(`✅ Created ${users.length} users`);
 
-        // Create parts
         const parts = await Part.create([
             {
                 partName: 'Intel Core i7-12700K',
@@ -145,7 +153,7 @@ async function seedDatabase() {
 
         console.log(`✅ Created ${parts.length} parts`);
 
-        // Create sample messages
+        // Sample messages
         await Message.create([
             {
                 sender: users[1]._id,
@@ -160,6 +168,24 @@ async function seedDatabase() {
                 part: parts[1]._id,
                 content: 'Yes, the RTX 3060 is still available',
                 isRead: true
+            }
+        ]);
+
+        // Sample reviews
+        await Review.create([
+            {
+                reviewer: users[1]._id,
+                reviewee: users[0]._id,
+                part: parts[0]._id,
+                rating: 5,
+                comment: 'Great seller, fast shipping!'
+            },
+            {
+                reviewer: users[2]._id,
+                reviewee: users[1]._id,
+                part: parts[1]._id,
+                rating: 4,
+                comment: 'Item as described, good condition'
             }
         ]);
 
@@ -181,374 +207,39 @@ app.get('/api/health', (req, res) => {
             auth: '/api/auth/*',
             parts: '/api/parts',
             users: '/api/users/*',
-            messages: '/api/messages'
+            messages: '/api/messages',
+            reviews: '/api/reviews'
         }
     });
 });
 
-// ===== AUTH ROUTES =====
-// POST /api/auth/register
-app.post('/api/auth/register', async (req, res) => {
-    try {
-        const { email, password, username, firstName, lastName } = req.body;
+// Apply rate limiter to all API routes
+app.use('/api/', generalLimiter);
 
-        // Check if user exists
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ message: 'Email already registered' });
-        }
+// Auth routes with stricter limiter
+app.use('/api/auth', authLimiter);
+app.use('/api/auth', authRoutes);
 
-        // Create user
-        const user = new User({
-            email,
-            username,
-            passwordHash: password,
-            firstName,
-            lastName
-        });
+// Other routes
+app.use('/api/parts', partRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/reviews', reviewRoutes);
 
-        await user.save();
-
-        // Create token
-        const token = jwt.sign(
-            { userId: user._id, email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRES_IN }
-        );
-
-        res.status(201).json({
-            message: 'Registration successful',
-            token,
-            user: user.toJSON()
-        });
-
-    } catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({ message: 'Server error during registration' });
-    }
-});
-
-// POST /api/auth/login
-app.post('/api/auth/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        // Find user
-        const user = await User.findOne({ email, isActive: true });
-        if (!user) {
-            return res.status(401).json({ message: 'Invalid email or password' });
-        }
-
-        // Check password
-        const isValidPassword = await user.comparePassword(password);
-        if (!isValidPassword) {
-            return res.status(401).json({ message: 'Invalid email or password' });
-        }
-
-        // Create token
-        const token = jwt.sign(
-            { userId: user._id, email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRES_IN }
-        );
-
-        res.json({
-            message: 'Login successful',
-            token,
-            user: user.toJSON()
-        });
-
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Server error during login' });
-    }
-});
-
-// GET /api/auth/verify
-app.get('/api/auth/verify', authenticateToken, (req, res) => {
-    res.json({ 
-        valid: true, 
-        user: req.userDoc.toJSON()
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Error:', err.stack);
+    res.status(500).json({ 
+        message: 'Something went wrong!',
+        error: process.env.NODE_ENV === 'development' ? err.message : {}
     });
-});
-
-// ===== PARTS ROUTES =====
-// GET /api/parts (public)
-app.get('/api/parts', async (req, res) => {
-    try {
-        const { category, condition, minPrice, maxPrice, search } = req.query;
-        
-        // Build query
-        const query = { isActive: true };
-        
-        if (category) query.category = category;
-        if (condition) query.condition = condition;
-        if (minPrice || maxPrice) {
-            query.price = {};
-            if (minPrice) query.price.$gte = parseFloat(minPrice);
-            if (maxPrice) query.price.$lte = parseFloat(maxPrice);
-        }
-        
-        // Text search
-        let partsQuery;
-        if (search) {
-            partsQuery = Part.find(
-                { $text: { $search: search }, isActive: true }
-            ).populate('seller', 'username email');
-        } else {
-            partsQuery = Part.find(query).populate('seller', 'username email');
-        }
-
-        const parts = await partsQuery.sort('-createdAt');
-
-        res.json({
-            count: parts.length,
-            parts
-        });
-
-    } catch (error) {
-        console.error('Error fetching parts:', error);
-        res.status(500).json({ message: 'Error fetching parts' });
-    }
-});
-
-// GET /api/parts/:id (public)
-app.get('/api/parts/:id', async (req, res) => {
-    try {
-        const part = await Part.findById(req.params.id)
-            .populate('seller', 'username email firstName lastName');
-
-        if (!part || !part.isActive) {
-            return res.status(404).json({ message: 'Part not found' });
-        }
-
-        res.json(part);
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching part' });
-    }
-});
-
-// POST /api/parts (protected)
-app.post('/api/parts', authenticateToken, async (req, res) => {
-    try {
-        const { partName, category, condition, price, description, imageURL } = req.body;
-
-        const part = new Part({
-            partName,
-            category,
-            condition,
-            price,
-            description,
-            imageURL,
-            seller: req.user.userId
-        });
-
-        await part.save();
-
-        res.status(201).json({
-            message: 'Part listed successfully',
-            part
-        });
-
-    } catch (error) {
-        console.error('Error creating part:', error);
-        res.status(500).json({ message: 'Error creating part listing' });
-    }
-});
-
-// PUT /api/parts/:id (protected)
-app.put('/api/parts/:id', authenticateToken, async (req, res) => {
-    try {
-        const part = await Part.findById(req.params.id);
-
-        if (!part) {
-            return res.status(404).json({ message: 'Part not found' });
-        }
-
-        // Check ownership
-        if (part.seller.toString() !== req.user.userId) {
-            return res.status(403).json({ message: 'Not authorized to update this part' });
-        }
-
-        // Update fields
-        const { partName, category, condition, price, description, imageURL } = req.body;
-        
-        if (partName) part.partName = partName;
-        if (category) part.category = category;
-        if (condition) part.condition = condition;
-        if (price) part.price = price;
-        if (description) part.description = description;
-        if (imageURL) part.imageURL = imageURL;
-
-        await part.save();
-
-        res.json({ message: 'Part updated successfully', part });
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error updating part' });
-    }
-});
-
-// DELETE /api/parts/:id (protected)
-app.delete('/api/parts/:id', authenticateToken, async (req, res) => {
-    try {
-        const part = await Part.findById(req.params.id);
-
-        if (!part) {
-            return res.status(404).json({ message: 'Part not found' });
-        }
-
-        // Check ownership
-        if (part.seller.toString() !== req.user.userId) {
-            return res.status(403).json({ message: 'Not authorized to delete this part' });
-        }
-
-        // Soft delete
-        part.isActive = false;
-        await part.save();
-
-        res.json({ message: 'Part deleted successfully' });
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error deleting part' });
-    }
-});
-
-// GET /api/parts/category/:category
-app.get('/api/parts/category/:category', async (req, res) => {
-    try {
-        const parts = await Part.find({ 
-            category: req.params.category,
-            isActive: true 
-        }).populate('seller', 'username');
-
-        res.json({
-            category: req.params.category,
-            count: parts.length,
-            parts
-        });
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching parts by category' });
-    }
-});
-
-// ===== USER ROUTES =====
-// GET /api/users/profile (protected)
-app.get('/api/users/profile', authenticateToken, async (req, res) => {
-    try {
-        // Get user's parts
-        const listings = await Part.find({ 
-            seller: req.user.userId,
-            isActive: true 
-        }).sort('-createdAt');
-
-        const userData = req.userDoc.toJSON();
-        userData.listings = listings;
-
-        res.json(userData);
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching profile' });
-    }
-});
-
-// PUT /api/users/profile (protected)
-app.put('/api/users/profile', authenticateToken, async (req, res) => {
-    try {
-        const { firstName, lastName, phone } = req.body;
-        
-        const user = req.userDoc;
-        
-        if (firstName) user.firstName = firstName;
-        if (lastName) user.lastName = lastName;
-        if (phone) user.phone = phone;
-        
-        await user.save();
-        
-        res.json({ message: 'Profile updated successfully', user: user.toJSON() });
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error updating profile' });
-    }
-});
-
-// ===== MESSAGE ROUTES =====
-// GET /api/messages (protected)
-app.get('/api/messages', authenticateToken, async (req, res) => {
-    try {
-        const messages = await Message.find({
-            $or: [
-                { sender: req.user.userId },
-                { receiver: req.user.userId }
-            ]
-        })
-        .populate('sender', 'username')
-        .populate('receiver', 'username')
-        .populate('part', 'partName')
-        .sort('-createdAt');
-
-        res.json(messages);
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching messages' });
-    }
-});
-
-// POST /api/messages (protected)
-app.post('/api/messages', authenticateToken, async (req, res) => {
-    try {
-        const { receiverId, partId, content } = req.body;
-
-        const message = new Message({
-            sender: req.user.userId,
-            receiver: receiverId,
-            part: partId,
-            content
-        });
-
-        await message.save();
-
-        res.status(201).json({
-            message: 'Message sent successfully',
-            messageData: message
-        });
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error sending message' });
-    }
-});
-
-// PUT /api/messages/:id/read (protected)
-app.put('/api/messages/:id/read', authenticateToken, async (req, res) => {
-    try {
-        const message = await Message.findById(req.params.id);
-
-        if (!message) {
-            return res.status(404).json({ message: 'Message not found' });
-        }
-
-        // Only receiver can mark as read
-        if (message.receiver.toString() !== req.user.userId) {
-            return res.status(403).json({ message: 'Not authorized' });
-        }
-
-        message.isRead = true;
-        await message.save();
-
-        res.json({ message: 'Message marked as read' });
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error updating message' });
-    }
 });
 
 // ============= SEED DATABASE ON STARTUP =============
 seedDatabase();
 
 // ============= START SERVER =============
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
