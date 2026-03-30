@@ -197,7 +197,7 @@ async function seedDatabase() {
 
 // API ROUTES
 
-// Health check
+// Health check API
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'running',
