@@ -32,7 +32,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// ============= DATABASE CONNECTION =============
+// DATABASE CONNECTION
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
         console.log('✅ Connected to MongoDB');
@@ -153,7 +153,7 @@ async function seedDatabase() {
 
         console.log(`✅ Created ${parts.length} parts`);
 
-        // Sample messages
+        // Sample message
         await Message.create([
             {
                 sender: users[1]._id,
@@ -195,9 +195,9 @@ async function seedDatabase() {
     }
 }
 
-// ============= API ROUTES =============
+// API ROUTES
 
-// Health check
+// Health check API
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'running',
@@ -235,7 +235,7 @@ app.use((err, req, res, next) => {
     });
 });
 
-// ============= SEED DATABASE ON STARTUP =============
+// SEED DATABASE ON STARTUP
 seedDatabase();
 
 // ============= START SERVER =============
