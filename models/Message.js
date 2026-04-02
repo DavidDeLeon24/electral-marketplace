@@ -34,7 +34,7 @@ messageSchema.index({ receiver: 1, isRead: 1 });
 
 messageSchema.set('toJSON', {
     transform: (doc, ret) => {
-        delete ret.__v;
+        delete ret.__v;          //remove version key
         return ret;
     }
 });
