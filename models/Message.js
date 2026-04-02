@@ -23,10 +23,10 @@ const messageSchema = new mongoose.Schema({
     },
     isRead: {
         type: Boolean,
-        default: false
+        default: false      //Read receipt status
     }
 }, {
-    timestamps: true
+    timestamps: true          //adds createdAt and updatedAt
 });
 
 messageSchema.index({ sender: 1, receiver: 1, createdAt: -1 });
