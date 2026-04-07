@@ -1,4 +1,4 @@
-//Authentica
+//Authenticat
 const jwt = require('jsonwebtoken');
 
 const authenticateToken = (req, res, next) => {
